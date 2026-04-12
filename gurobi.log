@@ -1,0 +1,8 @@
+
+Gurobi 13.0.1 (mac64[x86], gurobi_cl) logging started Sat Apr 11 15:56:38 2026
+
+Set parameter Username
+Set parameter LicenseID to value 2768137
+Set parameter LogFile to value "gurobi.log"
+Using license file /Users/lance/gurobi.lic
+Academic license - for non-commercial use only - expires 2027-01-21
