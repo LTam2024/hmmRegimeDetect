@@ -81,6 +81,8 @@ def fit_two_state_hmm_scaled(regime_in: pd.DataFrame) -> tuple[GaussianHMM, pd.D
         Fitted HMM model.
     state_df : pd.DataFrame
         DataFrame with returns, most likely state, and smoothed probabilities.
+    scaler : StandardScaler
+        Fitted scaler used to transform the data for HMM fitting.
     """
     if regime_in.shape[1] != 1:
         raise ValueError("regime_in should have exactly one column for SPY returns.")
@@ -109,7 +111,7 @@ def fit_two_state_hmm_scaled(regime_in: pd.DataFrame) -> tuple[GaussianHMM, pd.D
     state_df["p_state_0"] = probs[:, 0]
     state_df["p_state_1"] = probs[:, 1]
 
-    return model, state_df
+    return model, state_df, scaler
 
 
 def summarize_states(model: GaussianHMM, state_df: pd.DataFrame) -> pd.DataFrame:
@@ -142,19 +144,39 @@ def relabel_states_by_vol_two_state(state_df: pd.DataFrame) -> pd.DataFrame:
     1 = higher-vol regime
     """
     vols = state_df.groupby("state")["SPY_ret"].std().sort_values()
-    low_vol_state = vols.index[0]
-    high_vol_state = vols.index[1]
+    lowVolState = vols.index[0]
+    highVolState = vols.index[1]
 
     mapping = {
-        low_vol_state: 0,
-        high_vol_state: 1
+        lowVolState: 0,
+        highVolState: 1
     }
 
     relabeled = state_df.copy()
     relabeled["state"] = relabeled["state"].map(mapping)
 
     # remap probability columns
-    if low_vol_state == 0 and high_vol_state == 1:
+    if lowVolState == 0 and highVolState == 1:
+        relabeled["p_low_vol"] = relabeled["p_state_0"]
+        relabeled["p_high_vol"] = relabeled["p_state_1"]
+    else:
+        relabeled["p_low_vol"] = relabeled["p_state_1"]
+        relabeled["p_high_vol"] = relabeled["p_state_0"]
+
+    return relabeled, mapping
+
+def apply_state_map(out_df: pd.DataFrame, mapping: dict) -> pd.DataFrame:
+    """
+    Apply the state mapping to the out-of-sample DataFrame.
+    This is a separate function that is necessary to ensure there is no look-ahead bias when labeling the out-of-sample states.
+    """
+    relabeled = out_df.copy()
+    relabeled["state"] = relabeled["state_raw"].map(mapping)
+
+    low_raw = [k for k, v in mapping.items() if v == 0][0]
+    high_raw = [k for k, v in mapping.items() if v == 1][0]
+
+    if low_raw == 0 and high_raw == 1:
         relabeled["p_low_vol"] = relabeled["p_state_0"]
         relabeled["p_high_vol"] = relabeled["p_state_1"]
     else:
@@ -162,6 +184,35 @@ def relabel_states_by_vol_two_state(state_df: pd.DataFrame) -> pd.DataFrame:
         relabeled["p_high_vol"] = relabeled["p_state_0"]
 
     return relabeled
+
+def classify_outsample_two_state(model, scaler, outRet: pd.DataFrame) -> pd.DataFrame:
+    """
+    Use fitted in-sample HMM to classify out-of-sample SPY returns.
+
+    Parameters
+    ----------
+    model : fitted GaussianHMM
+    scaler : fitted StandardScaler used on in-sample SPY returns
+    outRet : pd.DataFrame
+        Out-of-sample SPY return series with one column
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame with SPY returns, inferred state, and state probabilities
+    """
+    X_out = scaler.transform(outRet.values)
+
+    outState = model.predict(X_out)
+    outProbs = model.predict_proba(X_out)
+
+    outDf = outRet.copy()
+    outDf.columns = ["SPY_ret"]
+    outDf["state_raw"] = outState
+    outDf["p_state_0"] = outProbs[:, 0]
+    outDf["p_state_1"] = outProbs[:, 1]
+
+    return outDf
 
 
 def plot_regimes(state_df: pd.DataFrame, output_dir: str, plot_id: str) -> None:

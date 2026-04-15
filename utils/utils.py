@@ -51,6 +51,7 @@ def clean_data(prices):
     print("Shape after dropna: ", cleaned.shape)
 
     return cleaned
+
 def compute_log_returns(prices):
     """
     Compute daily log returns from price data.
@@ -58,6 +59,7 @@ def compute_log_returns(prices):
     log_returns = np.log(prices / prices.shift(1))
     log_returns = log_returns.dropna().copy()
     return log_returns
+
 def split_sample(returns, insample_end="2018-12-31"):
     """
     Split returns into in-sample and out-of-sample periods.

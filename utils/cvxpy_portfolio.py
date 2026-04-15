@@ -26,6 +26,7 @@ def solve_min_variance_portfolio(cov_matrix: pd.DataFrame) -> pd.Series:
 
     weights = pd.Series(w.value, index=cov_matrix.index)
     return weights
+
 def solve_mean_variance_portfolio(mean_returns: pd.Series, cov_matrix: pd.DataFrame, risk_aversion: float = 10.0) -> pd.Series:
     """
     Solve a long-only fully invested mean-variance portfolio.
