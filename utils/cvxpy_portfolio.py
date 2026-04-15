@@ -26,6 +26,37 @@ def solve_min_variance_portfolio(cov_matrix: pd.DataFrame) -> pd.Series:
 
     weights = pd.Series(w.value, index=cov_matrix.index)
     return weights
+def solve_mean_variance_portfolio(mean_returns: pd.Series, cov_matrix: pd.DataFrame, risk_aversion: float = 10.0) -> pd.Series:
+    """
+    Solve a long-only fully invested mean-variance portfolio.
+    For more diversification, the maximum weight is limited to 50% (0.5) of the portfolio.
+    """
+    if not mean_returns.index.equals(cov_matrix.columns):
+        mean_returns = mean_returns.loc[cov_matrix.columns]
+
+    asset_names = cov_matrix.columns.tolist()
+    n = len(asset_names)
+
+    mu = mean_returns.values
+    sigma = cov_matrix.values
+
+    w = cp.Variable(n)
+
+    objective = cp.Maximize(mu @ w - risk_aversion * cp.quad_form(w, sigma))
+    constraints = [
+        cp.sum(w) == 1,
+        w >= 0,
+        w <= 0.5
+    ]
+
+    problem = cp.Problem(objective, constraints)
+    problem.solve()
+
+    if w.value is None:
+        raise ValueError("Optimization failed. No solution returned.")
+
+    weights = pd.Series(np.array(w.value).flatten(), index=asset_names, name="weight")
+    return weights
 
 def portfolio_stats(weights: pd.Series, returns: pd.DataFrame) -> dict:
     """
