@@ -68,3 +68,34 @@ def split_sample(returns, insample_end="2018-12-31"):
     outsample = returns.loc[pd.Timestamp(insample_end) + pd.Timedelta(days=1):].copy()
 
     return insample, outsample
+
+def compute_weighted_returns(ret_out: pd.DataFrame, state_series: pd.Series, w_0: pd.Series, w_1: pd.Series) -> pd.DataFrame:
+    """
+    Compute out-of-sample returns for regime-switching strategy using weights obtained from portfolio model.
+    """
+    asset_cols = ret_out.columns.tolist()
+
+    w0 = w_0.loc[asset_cols].values
+    w1 = w_1.loc[asset_cols].values
+
+    results = []
+
+    for date in ret_out.index:
+        r_t = ret_out.loc[date, asset_cols].values
+        state_t = state_series.loc[date]
+
+        if state_t == 0:
+            weight_vec = w0
+        else:
+            weight_vec = w1
+
+        port_ret = np.dot(r_t, weight_vec)
+
+        results.append({
+            "date": date,
+            "state": state_t,
+            "portfolio_return": port_ret
+        })
+
+    result_df = pd.DataFrame(results).set_index("date")
+    return result_df
