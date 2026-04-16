@@ -27,7 +27,7 @@ def solve_min_variance_portfolio(cov_matrix: pd.DataFrame) -> pd.Series:
     weights = pd.Series(w.value, index=cov_matrix.index)
     return weights
 
-def solve_mean_variance_portfolio(mean_returns: pd.Series, cov_matrix: pd.DataFrame, risk_aversion: float = 10.0) -> pd.Series:
+def solve_mean_variance_portfolio(mean_returns: pd.Series, cov_matrix: pd.DataFrame, risk_aversion: float = 10.0, max_weight: float = 0.5) -> pd.Series:
     """
     Solve a long-only fully invested mean-variance portfolio.
     For more diversification, the maximum weight is limited to 50% (0.5) of the portfolio.
@@ -47,7 +47,7 @@ def solve_mean_variance_portfolio(mean_returns: pd.Series, cov_matrix: pd.DataFr
     constraints = [
         cp.sum(w) == 1,
         w >= 0,
-        w <= 0.5
+        w <= max_weight
     ]
 
     problem = cp.Problem(objective, constraints)

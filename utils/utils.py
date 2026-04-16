@@ -99,3 +99,31 @@ def compute_weighted_returns(ret_out: pd.DataFrame, state_series: pd.Series, w_0
 
     result_df = pd.DataFrame(results).set_index("date")
     return result_df
+
+def portfolio_performance_summary(return_series: pd.Series) -> pd.Series:
+    """
+    Compute performance summary statistics for a portfolio return series.
+    """
+    mean_daily = return_series.mean()
+    vol_daily = return_series.std()
+
+    sharpe = np.nan
+    if vol_daily > 0:
+        sharpe = (mean_daily * 252) / (vol_daily * np.sqrt(252))
+
+    cumulative = np.exp(return_series.cumsum())
+    running_max = cumulative.cummax()
+    drawdown = cumulative / running_max - 1
+    max_drawdown = drawdown.min()
+
+    total_return = cumulative.iloc[-1] - 1
+
+    return pd.Series({
+        "mean_daily": mean_daily,
+        "vol_daily": vol_daily,
+        "annualized_return_approx": mean_daily * 252,
+        "annualized_vol_approx": vol_daily * np.sqrt(252),
+        "sharpe_approx": sharpe,
+        "max_drawdown": max_drawdown,
+        "total_return": total_return
+    })
