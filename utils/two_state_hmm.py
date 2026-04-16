@@ -223,7 +223,7 @@ def plot_regimes(state_df: pd.DataFrame, output_dir: str, plot_id: str) -> None:
 
     # Plot 1: returns colored by state
     plt.figure(figsize=(14, 5))
-    for s in [0, 1]:
+    for s in np.unique(state_df["state"]):
         mask = state_df["state"] == s
         plt.scatter(
             state_df.index[mask],

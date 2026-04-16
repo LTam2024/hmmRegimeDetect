@@ -61,3 +61,36 @@ def relabel_three_states_by_vol(state_df: pd.DataFrame):
     relabeled["p_high_vol"] = relabeled["p_state_relab_2"]
 
     return relabeled, mapping
+
+def classify_outsample_regimes_nstate(model, scaler, regime_out: pd.DataFrame, n_states: int):
+    """
+    
+    Classify out-of-sample returns into HMM states using the fitted model and scaler.
+    Can be used for any n_states, but currently only have 2 or 3 state use cases.
+    """
+    X_out = scaler.transform(regime_out.values)
+    states_out = model.predict(X_out)
+    probs_out = model.predict_proba(X_out)
+
+    out_df = regime_out.copy()
+    out_df.columns = ["SPY_ret"]
+    out_df["state_raw"] = states_out
+
+    for j in range(n_states):
+        out_df[f"p_state_{j}"] = probs_out[:, j]
+
+    return out_df
+
+
+def apply_three_state_mapping(out_df: pd.DataFrame, mapping: dict):
+    relabeled = out_df.copy()
+    relabeled["state"] = relabeled["state_raw"].map(mapping)
+
+    for raw_state, new_state in mapping.items():
+        relabeled[f"p_state_relab_{new_state}"] = relabeled[f"p_state_{raw_state}"]
+
+    relabeled["p_low_vol"] = relabeled["p_state_relab_0"]
+    relabeled["p_mid_vol"] = relabeled["p_state_relab_1"]
+    relabeled["p_high_vol"] = relabeled["p_state_relab_2"]
+
+    return relabeled
