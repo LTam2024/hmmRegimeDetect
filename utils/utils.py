@@ -127,3 +127,34 @@ def portfolio_performance_summary(return_series: pd.Series) -> pd.Series:
         "max_drawdown": max_drawdown,
         "total_return": total_return
     })
+    
+def compute_probability_weighted_returns(ret_out: pd.DataFrame, prob_df: pd.DataFrame, w_0: pd.Series, w_1: pd.Series) -> pd.DataFrame:
+    """
+    Compute portfolio returns using probability-weighted portfolios (focusing on out-of-sample).
+    """
+    asset_cols = ret_out.columns.tolist()
+
+    w0 = w_0.loc[asset_cols].values
+    w1 = w_1.loc[asset_cols].values
+
+    results = []
+
+    for date in ret_out.index:
+        r_t = ret_out.loc[date, asset_cols].values
+
+        p_low = prob_df.loc[date, "p_low_vol"]
+        p_high = prob_df.loc[date, "p_high_vol"]
+
+        # weighted portfolio
+        w_t = p_low * w0 + p_high * w1
+
+        port_ret = np.dot(r_t, w_t)
+
+        results.append({
+            "date": date,
+            "portfolio_return": port_ret,
+            "p_high_vol": p_high
+        })
+
+    result_df = pd.DataFrame(results).set_index("date")
+    return result_df
