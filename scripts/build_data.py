@@ -14,7 +14,7 @@ tickers = ["SPY", "QQQ", "IWM", "EFA", "TLT", "LQD", "GLD", "HYG"]
 marketTicker = "SPY"
 
 start = "2007-01-01"
-end = "2024-12-31"
+end = "2025-12-31"
 insampleEnd = "2018-12-31"
 
 def build_dataset():
